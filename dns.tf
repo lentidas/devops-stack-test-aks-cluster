@@ -9,7 +9,7 @@
 
 data "azurerm_dns_zone" "this" {
   name                = local.base_domain
-  resource_group_name = "default"
+  resource_group_name = local.default_resource_group
 }
 
 # This resource should be deactivated if there are multiple development clusters on the same account.
@@ -18,7 +18,7 @@ resource "azurerm_dns_cname_record" "wildcard" {
 
   zone_name           = data.azurerm_dns_zone.this.name
   name                = "*.apps"
-  resource_group_name = "default"
+  resource_group_name = local.default_resource_group
   ttl                 = 300
   record              = format("%s-%s.%s.cloudapp.azure.com.", module.aks.cluster_name, replace(data.azurerm_dns_zone.this.name, ".", "-"), resource.azurerm_resource_group.main.location)
 }

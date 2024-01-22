@@ -2,8 +2,8 @@ data "azuread_client_config" "current" {}
 
 data "azurerm_client_config" "current" {}
 
-data "azuread_group" "is_sandbox_ch_dev_admins" {
-  object_id = "38a1908d-0ccd-4acc-99d5-7f0228289752"
+data "azuread_group" "cluster_admins" {
+  object_id = local.cluster_admins_group_object_id
 }
 
 resource "azurerm_resource_group" "main" {
@@ -32,29 +32,14 @@ module "aks" {
   kubernetes_version = local.kubernetes_version
   sku_tier           = local.sku_tier
 
-  automatic_channel_upgrade = "patch"
-  maintenance_window = {
-    allowed = [
-      {
-        day   = "Sunday",
-        hours = [22, 23]
-      },
-    ]
-    not_allowed = []
-  }
-
   rbac_aad_admin_group_object_ids = [
-    data.azuread_group.is_sandbox_ch_dev_admins.object_id
+    data.azuread_group.cluster_admins.object_id
   ]
-
-  # Default node pool configuration
-  # orchestrator_version = "1.25" # If this variable is not set, the module will use the value from the `kubernetes_version` variable.
 
   # Extra node pools
   node_pools = {
     extra = {
-      vm_size = "Standard_D2s_v3"
-      # orchestrator_version = "1.25" # If this variable is not set, the module will use the value from the `kubernetes_version` variable.
+      vm_size    = "Standard_D2s_v3"
       node_count = 2
       node_labels = {
         "devops-stack.io/extra_label" = "extra"
@@ -247,7 +232,7 @@ module "argocd" {
   rbac = {
     policy_csv = <<-EOT
       g, pipeline, role:admin
-      g, ${data.azuread_group.is_sandbox_ch_dev_admins.object_id}, role:admin
+      g, ${data.azuread_group.cluster_admins.object_id}, role:admin
     EOT
   }
 
