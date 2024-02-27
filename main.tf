@@ -19,11 +19,12 @@ resource "azurerm_virtual_network" "this" {
 }
 
 module "aks" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.1.0"
   # source = "../../devops-stack-module-cluster-aks"
 
   cluster_name         = local.cluster_name
   base_domain          = local.base_domain
+  subdomain            = local.subdomain
   location             = resource.azurerm_resource_group.main.location
   resource_group_name  = resource.azurerm_resource_group.main.name
   virtual_network_name = resource.azurerm_virtual_network.this.name
@@ -38,20 +39,20 @@ module "aks" {
 
   # Extra node pools
   node_pools = {
-    extra = {
-      vm_size    = "Standard_D2s_v3"
-      node_count = 2
-      node_labels = {
-        "devops-stack.io/extra_label" = "extra"
-      }
-    },
+    # extra = {
+    #   vm_size    = "Standard_D2s_v3"
+    #   node_count = 2
+    #   node_labels = {
+    #     "devops-stack.io/extra_label" = "extra"
+    #   }
+    # },
   }
 
   depends_on = [resource.azurerm_resource_group.main]
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v4.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v4.2.0"
   # source = "../../devops-stack-module-argocd/bootstrap"
 
   argocd_projects = {
@@ -64,7 +65,7 @@ module "argocd_bootstrap" {
 }
 
 module "traefik" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v5.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v6.1.1"
   # source = "../../devops-stack-module-traefik/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -101,8 +102,8 @@ module "cert-manager" {
 }
 
 module "loki-stack" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v7.0.0"
-  source = "../../devops-stack-module-loki-stack/aks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v7.0.1"
+  # source = "../../devops-stack-module-loki-stack/aks"
 
   argocd_project = module.aks.cluster_name
 
@@ -122,15 +123,17 @@ module "loki-stack" {
 }
 
 module "thanos" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v3.0.0"
-  source = "../../devops-stack-module-thanos/aks"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v3.3.0"
+  # source = "../../devops-stack-module-thanos/aks"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
+  subdomain      = local.subdomain
   cluster_issuer = local.cluster_issuer
   argocd_project = module.aks.cluster_name
 
-  app_autosync = local.app_autosync
+  app_autosync           = local.app_autosync
+  enable_service_monitor = local.enable_service_monitor
 
   metrics_storage = {
     container       = resource.azurerm_storage_container.storage["thanos"].name
@@ -152,11 +155,12 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v9.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v9.2.0"
   # source = "../../devops-stack-module-kube-prometheus-stack/aks"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
+  subdomain      = local.subdomain
   cluster_issuer = local.cluster_issuer
   argocd_project = module.aks.cluster_name
 
@@ -192,11 +196,12 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v4.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v4.2.0"
   # source = "../../devops-stack-module-argocd"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
+  subdomain      = local.subdomain
   cluster_issuer = local.cluster_issuer
   argocd_project = module.aks.cluster_name
 

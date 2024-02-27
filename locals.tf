@@ -12,6 +12,7 @@ locals {
   sku_tier                 = "Standard"
   cluster_name             = "gh-aks-cluster"                  # Must be unique for each DevOps Stack deployment in a single Azure subscription.
   base_domain              = "is-sandbox-azure.camptocamp.com" # Must match a DNS zone in the Azure subscription where you are deploying the DevOps Stack.
+  subdomain                = ""
   activate_wildcard_record = true
   cluster_issuer           = module.cert-manager.cluster_issuers.staging
   letsencrypt_issuer_email = "letsencrypt@camptocamp.com"
