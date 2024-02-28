@@ -33,6 +33,8 @@ module "aks" {
   kubernetes_version = local.kubernetes_version
   sku_tier           = local.sku_tier
 
+  agents_max_pods = 70
+
   rbac_aad_admin_group_object_ids = [
     data.azuread_group.cluster_admins.object_id
   ]
