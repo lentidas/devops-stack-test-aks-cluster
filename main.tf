@@ -33,6 +33,7 @@ module "aks" {
   kubernetes_version = local.kubernetes_version
   sku_tier           = local.sku_tier
 
+  agents_count    = 7
   agents_max_pods = 70
 
   rbac_aad_admin_group_object_ids = [
@@ -54,7 +55,7 @@ module "aks" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v4.4.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v4.4.1"
   # source = "../../devops-stack-module-argocd/bootstrap"
 
   argocd_projects = {
@@ -67,7 +68,7 @@ module "argocd_bootstrap" {
 }
 
 module "traefik" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v6.2.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v6.3.0"
   # source = "../../devops-stack-module-traefik/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -83,7 +84,7 @@ module "traefik" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v8.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v8.2.0"
   # source = "../../devops-stack-module-cert-manager/aks"
 
   cluster_name   = local.cluster_name
@@ -104,7 +105,7 @@ module "cert-manager" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v7.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v7.2.0"
   # source = "../../devops-stack-module-loki-stack/aks"
 
   argocd_project = module.aks.cluster_name
@@ -125,7 +126,7 @@ module "loki-stack" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v4.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v4.1.0"
   # source = "../../devops-stack-module-thanos/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -157,8 +158,11 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v9.2.1"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v10.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=ISDEVOPS-278"
   # source = "../../devops-stack-module-kube-prometheus-stack/aks"
+
+  target_revision = "ISDEVOPS-278"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
@@ -169,11 +173,11 @@ module "kube-prometheus-stack" {
   app_autosync = local.app_autosync
 
   metrics_storage = {
-    container           = resource.azurerm_storage_container.storage["thanos"].name
-    storage_account     = resource.azurerm_storage_account.storage["thanos"].name
-    storage_account_key = resource.azurerm_storage_account.storage["thanos"].primary_access_key
-    # managed_identity_node_rg_name    = module.aks.node_resource_group_name
-    # managed_identity_oidc_issuer_url = module.aks.cluster_oidc_issuer_url
+    container       = resource.azurerm_storage_container.storage["thanos"].name
+    storage_account = resource.azurerm_storage_account.storage["thanos"].name
+    # storage_account_key              = resource.azurerm_storage_account.storage["thanos"].primary_access_key
+    managed_identity_node_rg_name    = module.aks.node_resource_group_name
+    managed_identity_oidc_issuer_url = module.aks.cluster_oidc_issuer_url
   }
 
   prometheus = {
@@ -198,7 +202,7 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v4.4.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v4.4.1"
   # source = "../../devops-stack-module-argocd"
 
   cluster_name   = module.aks.cluster_name
@@ -211,8 +215,6 @@ module "argocd" {
   server_secretkey         = module.argocd_bootstrap.argocd_server_secretkey
 
   app_autosync = local.app_autosync
-
-  resources = {}
 
   high_availability = {
     enabled = false
