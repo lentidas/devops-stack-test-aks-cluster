@@ -19,22 +19,24 @@ resource "azurerm_virtual_network" "this" {
 }
 
 module "aks" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.2.0"
   # source = "../../devops-stack-module-cluster-aks"
 
-  cluster_name         = local.cluster_name
-  base_domain          = local.base_domain
-  subdomain            = local.subdomain
-  location             = resource.azurerm_resource_group.main.location
-  resource_group_name  = resource.azurerm_resource_group.main.name
-  virtual_network_name = resource.azurerm_virtual_network.this.name
-  cluster_subnet       = local.cluster_subnet
+  cluster_name                 = local.cluster_name
+  base_domain                  = local.base_domain
+  subdomain                    = local.subdomain
+  location                     = resource.azurerm_resource_group.main.location
+  resource_group_name          = resource.azurerm_resource_group.main.name
+  virtual_network_name         = resource.azurerm_virtual_network.this.name
+  cluster_subnet               = local.cluster_subnet
+  dns_zone_resource_group_name = local.default_resource_group
 
   kubernetes_version = local.kubernetes_version
   sku_tier           = local.sku_tier
 
-  agents_count    = 7
-  agents_max_pods = 70
+  # agents_size = "Standard_D4s_v3"
+  # agents_count    = 7
+  agents_max_pods = 100
 
   rbac_aad_admin_group_object_ids = [
     data.azuread_group.cluster_admins.object_id
@@ -55,7 +57,7 @@ module "aks" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v4.4.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v5.2.0"
   # source = "../../devops-stack-module-argocd/bootstrap"
 
   argocd_projects = {
@@ -65,6 +67,25 @@ module "argocd_bootstrap" {
   }
 
   depends_on = [module.aks]
+}
+
+module "secrets" {
+  source = "git::https://github.com/lentidas/devops-stack-module-secrets.git//k8s_secrets?ref=feat/initial_implementation"
+  # source = "../../devops-stack-module-secrets/aws_secrets_manager"
+  # source = "../../devops-stack-module-secrets/k8s_secrets"
+
+  target_revision = "feat/initial_implementation"
+
+  cluster_name   = module.aks.cluster_name
+  base_domain    = module.aks.base_domain
+  argocd_project = module.aks.cluster_name
+
+  app_autosync           = local.app_autosync
+  enable_service_monitor = local.enable_service_monitor
+
+  dependency_ids = {
+    argocd = module.argocd_bootstrap.id
+  }
 }
 
 module "traefik" {
@@ -84,7 +105,7 @@ module "traefik" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v8.2.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v8.3.0"
   # source = "../../devops-stack-module-cert-manager/aks"
 
   cluster_name   = local.cluster_name
@@ -94,7 +115,7 @@ module "cert-manager" {
   letsencrypt_issuer_email     = local.letsencrypt_issuer_email
   cluster_oidc_issuer_url      = module.aks.cluster_oidc_issuer_url
   node_resource_group_name     = module.aks.node_resource_group_name
-  dns_zone_resource_group_name = "default"
+  dns_zone_resource_group_name = local.default_resource_group
 
   app_autosync           = local.app_autosync
   enable_service_monitor = local.enable_service_monitor
@@ -105,7 +126,7 @@ module "cert-manager" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v7.2.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v8.1.0"
   # source = "../../devops-stack-module-loki-stack/aks"
 
   argocd_project = module.aks.cluster_name
@@ -126,7 +147,7 @@ module "loki-stack" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v4.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v5.0.0"
   # source = "../../devops-stack-module-thanos/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -158,17 +179,18 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v10.1.0"
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=ISDEVOPS-278"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v11.1.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=ISDEVOPS-296"
   # source = "../../devops-stack-module-kube-prometheus-stack/aks"
 
-  target_revision = "ISDEVOPS-278"
+  target_revision = "ISDEVOPS-296"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
   subdomain      = local.subdomain
   cluster_issuer = local.cluster_issuer
   argocd_project = module.aks.cluster_name
+  secrets_names  = module.secrets.secrets_names
 
   app_autosync = local.app_autosync
 
@@ -180,17 +202,7 @@ module "kube-prometheus-stack" {
     managed_identity_oidc_issuer_url = module.aks.cluster_oidc_issuer_url
   }
 
-  prometheus = {
-    oidc = local.oidc
-  }
-
-  alertmanager = {
-    oidc = local.oidc
-  }
-
-  grafana = {
-    oidc = local.oidc
-  }
+  oidc = local.oidc
 
   dependency_ids = {
     argocd       = module.argocd_bootstrap.id
@@ -202,7 +214,7 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v4.4.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v5.2.0"
   # source = "../../devops-stack-module-argocd"
 
   cluster_name   = module.aks.cluster_name
@@ -245,17 +257,17 @@ module "argocd" {
     EOT
   }
 
-  # TODO Create variable for this
-  helm_values = [{
-    argo-cd = {
-      global = {
-        networkPolicy = {
-          create             = true
-          defaultDenyIngress = true
-        }
-      }
-    }
-  }]
+  # # TODO Create variable for this
+  # helm_values = [{
+  #   argo-cd = {
+  #     global = {
+  #       networkPolicy = {
+  #         create             = true
+  #         defaultDenyIngress = true
+  #       }
+  #     }
+  #   }
+  # }]
 
   dependency_ids = {
     argocd                = module.argocd_bootstrap.id

@@ -1,14 +1,14 @@
 locals {
   # Parameters for the resources that are created outside this code, but still on the Azure subscription where the DevOps Stack will be deployed.
-  default_resource_group         = "default"           # The default resource group where the Key Vault with the Azure AD application credentials is located.
-  default_key_vault              = "is-sandbox-ch-dev" # The name of the Key Vault with the Azure AD application credentials.
+  default_resource_group         = "default-rg"        # The default resource group where the Key Vault with the Azure AD application credentials is located.
+  shared_key_vault_name          = "is-sandbox-ch-dev" # The name of the Key Vault with the Azure AD application credentials.
   oidc_application_name          = "is-sandbox-ch-dev" # The name of the Azure AD application that will be used for OIDC authentication.
   cluster_admins_group_object_id = "38a1908d-0ccd-4acc-99d5-7f0228289752"
 
   # Parameters used for this deployment of the DevOps Stack.
   common_resource_group    = "gh-aks-cluster" # The resource group where the common resources will reside. Must be unique for each DevOps Stack deployment in a single Azure subscription. 
   location                 = "Switzerland North"
-  kubernetes_version       = "1.28"
+  kubernetes_version       = "1.29"
   sku_tier                 = "Standard"
   cluster_name             = "gh-aks-cluster"                  # Must be unique for each DevOps Stack deployment in a single Azure subscription.
   base_domain              = "is-sandbox-azure.camptocamp.com" # Must match a DNS zone in the Azure subscription where you are deploying the DevOps Stack.
