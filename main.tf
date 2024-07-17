@@ -276,5 +276,3 @@ module "argocd" {
     kube-prometheus-stack = module.kube-prometheus-stack.id
   }
 }
-
-# TODO Add domain is-sandbox-azure.camptocamp.com to the AWS DNS zone Terraform module
