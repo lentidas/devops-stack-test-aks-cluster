@@ -19,8 +19,8 @@ resource "azurerm_virtual_network" "this" {
 }
 
 module "aks" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.2.0"
-  # source = "../../devops-stack-module-cluster-aks"
+  # source = "git::https://github.com/camptocamp/devops-stack-module-cluster-aks?ref=v1.2.0"
+  source = "../../devops-stack-module-cluster-aks"
 
   cluster_name                 = local.cluster_name
   base_domain                  = local.base_domain
@@ -57,7 +57,7 @@ module "aks" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v5.3.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v7.1.0"
   # source = "../../devops-stack-module-argocd/bootstrap"
 
   argocd_projects = {
@@ -69,27 +69,8 @@ module "argocd_bootstrap" {
   depends_on = [module.aks]
 }
 
-module "secrets" {
-  source = "git::https://github.com/lentidas/devops-stack-module-secrets.git//k8s_secrets?ref=feat/initial_implementation"
-  # source = "../../devops-stack-module-secrets/aws_secrets_manager"
-  # source = "../../devops-stack-module-secrets/k8s_secrets"
-
-  target_revision = "feat/initial_implementation"
-
-  cluster_name   = module.aks.cluster_name
-  base_domain    = module.aks.base_domain
-  argocd_project = module.aks.cluster_name
-
-  app_autosync           = local.app_autosync
-  enable_service_monitor = local.enable_service_monitor
-
-  dependency_ids = {
-    argocd = module.argocd_bootstrap.id
-  }
-}
-
 module "traefik" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v7.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v9.0.0"
   # source = "../../devops-stack-module-traefik/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -105,7 +86,7 @@ module "traefik" {
 }
 
 module "cert-manager" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v8.4.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-cert-manager.git//aks?ref=v10.0.0"
   # source = "../../devops-stack-module-cert-manager/aks"
 
   cluster_name   = local.cluster_name
@@ -126,7 +107,7 @@ module "cert-manager" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v8.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v10.0.0"
   # source = "../../devops-stack-module-loki-stack/aks"
 
   argocd_project = module.aks.cluster_name
@@ -147,7 +128,7 @@ module "loki-stack" {
 }
 
 module "thanos" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v5.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-thanos.git//aks?ref=v7.0.1"
   # source = "../../devops-stack-module-thanos/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -179,20 +160,26 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  # source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v11.1.1"
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=ISDEVOPS-296"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v13.0.1"
   # source = "../../devops-stack-module-kube-prometheus-stack/aks"
-
-  target_revision = "ISDEVOPS-296"
 
   cluster_name   = module.aks.cluster_name
   base_domain    = module.aks.base_domain
   subdomain      = local.subdomain
   cluster_issuer = local.cluster_issuer
   argocd_project = module.aks.cluster_name
-  secrets_names  = module.secrets.secrets_names
 
   app_autosync = local.app_autosync
+
+  prometheus = {
+    oidc = local.oidc
+  }
+  alertmanager = {
+    oidc = local.oidc
+  }
+  grafana = {
+    oidc = local.oidc
+  }
 
   metrics_storage = {
     container       = resource.azurerm_storage_container.storage["thanos"].name
@@ -201,8 +188,6 @@ module "kube-prometheus-stack" {
     managed_identity_node_rg_name    = module.aks.node_resource_group_name
     managed_identity_oidc_issuer_url = module.aks.cluster_oidc_issuer_url
   }
-
-  oidc = local.oidc
 
   dependency_ids = {
     argocd       = module.argocd_bootstrap.id
@@ -214,7 +199,7 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v5.3.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v7.1.0"
   # source = "../../devops-stack-module-argocd"
 
   cluster_name   = module.aks.cluster_name
