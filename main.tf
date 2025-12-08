@@ -57,7 +57,7 @@ module "aks" {
 }
 
 module "argocd_bootstrap" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v7.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git//bootstrap?ref=v8.0.0"
   # source = "../../devops-stack-module-argocd/bootstrap"
 
   argocd_projects = {
@@ -70,7 +70,7 @@ module "argocd_bootstrap" {
 }
 
 module "traefik" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v9.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-traefik.git//aks?ref=v10.0.0"
   # source = "../../devops-stack-module-traefik/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -107,7 +107,7 @@ module "cert-manager" {
 }
 
 module "loki-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v10.0.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-loki-stack.git//aks?ref=v11.0.0"
   # source = "../../devops-stack-module-loki-stack/aks"
 
   argocd_project = module.aks.cluster_name
@@ -152,6 +152,25 @@ module "thanos" {
     oidc = local.oidc
   }
 
+  helm_values = [{
+    thanos = {
+      image = {
+        repository = "bitnamilegacy/thanos"
+      }
+      global = {
+        imageRegistry = "docker.io"
+      }
+    }
+    redis = {
+      image = {
+        repository = "bitnamilegacy/redis"
+      }
+      global = {
+        imageRegistry = "docker.io"
+      }
+    }
+  }]
+
   dependency_ids = {
     argocd       = module.argocd_bootstrap.id
     traefik      = module.traefik.id
@@ -160,7 +179,7 @@ module "thanos" {
 }
 
 module "kube-prometheus-stack" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v13.0.1"
+  source = "git::https://github.com/camptocamp/devops-stack-module-kube-prometheus-stack.git//aks?ref=v14.2.0"
   # source = "../../devops-stack-module-kube-prometheus-stack/aks"
 
   cluster_name   = module.aks.cluster_name
@@ -199,7 +218,7 @@ module "kube-prometheus-stack" {
 }
 
 module "argocd" {
-  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v7.1.0"
+  source = "git::https://github.com/camptocamp/devops-stack-module-argocd.git?ref=v8.0.0"
   # source = "../../devops-stack-module-argocd"
 
   cluster_name   = module.aks.cluster_name

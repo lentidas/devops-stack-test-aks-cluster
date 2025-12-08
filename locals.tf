@@ -8,7 +8,7 @@ locals {
   # Parameters used for this deployment of the DevOps Stack.
   common_resource_group    = "gh-aks-cluster" # The resource group where the common resources will reside. Must be unique for each DevOps Stack deployment in a single Azure subscription. 
   location                 = "Switzerland North"
-  kubernetes_version       = "1.29"
+  kubernetes_version       = "1.34"
   sku_tier                 = "Standard"
   cluster_name             = "gh-aks-cluster"                  # Must be unique for each DevOps Stack deployment in a single Azure subscription.
   base_domain              = "is-sandbox-azure.camptocamp.com" # Must match a DNS zone in the Azure subscription where you are deploying the DevOps Stack.

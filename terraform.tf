@@ -22,7 +22,7 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2"
+      version = "~> 3"
     }
     argocd = {
       source  = "argoproj-labs/argocd"
@@ -55,7 +55,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.aks.kubernetes_host
     username               = module.aks.kubernetes_username
     password               = module.aks.kubernetes_password
